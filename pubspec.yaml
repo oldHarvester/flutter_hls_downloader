@@ -1,0 +1,32 @@
+name: flutter_hls_parser_test
+description: "A new Flutter project."
+publish_to: 'none'
+version: 0.1.0
+
+environment:
+  sdk: '>=3.2.5 <4.0.0'
+
+dependencies:
+  better_player: ^0.0.63
+  build_runner: ^2.4.8
+  dio: ^5.4.0
+  equatable: ^2.0.5
+  flutter:
+    sdk: flutter
+  flutter_hls_parser: ^2.0.1
+  flutter_hooks: ^0.20.5
+  freezed: ^2.4.7
+  hooks_riverpod: ^2.4.10
+  json_annotation: ^4.8.1
+  lecle_yoyo_player: ^0.0.8
+  path_provider: ^2.1.2
+  riverpod: ^2.5.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^2.0.0
+  json_serializable: ^6.7.1
+
+flutter:
+  uses-material-design: true
