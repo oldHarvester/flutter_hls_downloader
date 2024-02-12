@@ -1,9 +1,10 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_hls_parser_test/config/endpoints.dart';
 import 'package:flutter_hls_parser_test/models/hls_entry_model/hls_entry_model.dart';
-import 'package:flutter_hls_parser_test/models/master_playlist_parsed_model/master_playlist_parsed_model.dart';
+import 'package:flutter_hls_parser_test/models/master_playlist_model/master_playlist_model.dart';
 import 'package:flutter_hls_parser_test/models/segment_playlist_model/segment_playlist_parsed_model.dart';
 import 'package:flutter_hls_parser_test/providers/client_provider.dart';
+import 'package:flutter_hls_parser_test/utils/hls_parser/hls_parser.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:riverpod/riverpod.dart';
 
@@ -25,49 +26,38 @@ class HlsRepository {
       final response = await dio.get(EndPoints.hlsMovie);
       return HlsEntryModel.fromJson(response.data);
     } catch (e) {
-      print(e);
       rethrow;
     }
   }
 
-  Future<void> fetchHlsPlaylist() async {
-    try {
-      final hlsEntry = await fetchHlsEntry();
-      if (hlsEntry.master == null) return;
-      final response =
-          await dio.get(hlsEntry.master!.replaceFirst(EndPoints.baseUrl, ''));
-      print(response.data);
-    } catch (e) {
-      print(e);
-    }
-  }
-
-  Future<MasterPlaylistParsedModel> fetchDataFromMasterPlaylist(
+  Future<MasterPlaylistModel> fetchDataFromMasterPlaylist(
       String masterPlaylistUrl) async {
     try {
       final response = await dio.get(masterPlaylistUrl);
-      return MasterPlaylistParsedModel.parseFromPlaylist(
-        response.data,
-        masterPlaylistUrl,
+      final parser = HlsParser(
+        playlist: response.data,
+        playlistUrl: masterPlaylistUrl,
+      );
+      return MasterPlaylistModel.fromParsedPlaylist(
+        parser.parsedData,
       );
     } catch (e) {
-      print(e);
       rethrow;
     }
   }
 
   Future<SegmentPlaylistParsedModel> fetchDataFromResolutionPlaylist(
       HlsResolution resolution) async {
-    try {
-      final response = await dio.get(resolution.playlistUrl);
-      return SegmentPlaylistParsedModel.parseFrom(
-        response.data,
-        resolution.playlistUrl,
-      );
-    } catch (e) {
-      print(e);
-      rethrow;
-    }
+    // try {
+    //   final response = await dio.get(resolution.playlistUrl);
+    //   return SegmentPlaylistParsedModel.parseFrom(
+    //     response.data,
+    //     '',
+    //   );
+    // } catch (e) {
+    //   rethrow;
+    // }
+    throw Exception();
   }
 
   Future<void> downloadSegment(
@@ -85,7 +75,11 @@ class HlsRepository {
         },
       );
     } catch (e) {
-      print(e);
+      rethrow;
     }
   }
+
+  Future<void> downloadHlsVideo(
+      {required MasterPlaylistModel masterPlaylistData,
+      required HlsResolution hlsResolution}) async {}
 }

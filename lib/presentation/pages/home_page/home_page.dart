@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_hls_parser_test/models/master_playlist_parsed_model/master_playlist_parsed_model.dart';
+import 'package:flutter_hls_parser_test/models/master_playlist_model/master_playlist_model.dart';
 import 'package:flutter_hls_parser_test/presentation/pages/download_list_page/download_list_page.dart';
 import 'package:flutter_hls_parser_test/repositories/hls_repository.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -14,7 +14,7 @@ class HomePage extends StatefulHookConsumerWidget {
 class _HomePageState extends ConsumerState<HomePage> {
   String? url;
 
-  MasterPlaylistParsedModel? playlistData;
+  MasterPlaylistModel? playlistData;
 
   @override
   Widget build(BuildContext context) {
@@ -35,7 +35,6 @@ class _HomePageState extends ConsumerState<HomePage> {
                 playlistData = await ref
                     .read(hlsRepositoryProvider)
                     .fetchDataFromMasterPlaylist(url!);
-                print(playlistData?.resolutions.first.playlistUrl);
                 setState(() {});
               },
             ),
@@ -57,7 +56,6 @@ class _HomePageState extends ConsumerState<HomePage> {
                                 .read(hlsRepositoryProvider)
                                 .fetchDataFromResolutionPlaylist(
                                     resolutionData);
-                            print(data.segments.first.videoLink);
 
                             if (context.mounted) {
                               Navigator.of(context).push(
@@ -71,7 +69,10 @@ class _HomePageState extends ConsumerState<HomePage> {
                               );
                             }
                           },
-                          child: Text(resolutionData.resolution.title),
+                          child: Text(
+                            resolutionData.resolution.title
+                                .replaceFirst('/', ''),
+                          ),
                         ),
                       )
                       .toList(),
