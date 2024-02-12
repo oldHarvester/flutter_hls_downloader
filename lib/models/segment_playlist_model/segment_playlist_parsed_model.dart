@@ -1,17 +1,16 @@
 import 'package:equatable/equatable.dart';
-import 'package:flutter_hls_parser_test/utils/functions.dart';
+import 'package:flutter_hls_parser_test/utils/hls_parser/hls_constants.dart';
+import 'package:flutter_hls_parser_test/utils/hls_parser/hls_parser.dart';
 
 class HlsSegment extends Equatable {
   const HlsSegment({
-    required this.duration,
     required this.videoLink,
   });
 
-  final double duration;
   final String videoLink;
 
   @override
-  List<Object?> get props => [duration, videoLink];
+  List<Object?> get props => [videoLink];
 }
 
 class SegmentPlaylistParsedModel {
@@ -19,32 +18,16 @@ class SegmentPlaylistParsedModel {
 
   final Set<HlsSegment> segments;
 
-  factory SegmentPlaylistParsedModel.parseFrom(
-      String segmentsData, String playlistUrl) {
+  factory SegmentPlaylistParsedModel.fromParsedPlaylist(
+      HlsPlaylistData playlistData) {
     final segments = <HlsSegment>{};
-    final segmentsLines = segmentsData.split('\n');
 
-    for (var i = 0; i < segmentsLines.length; i++) {
-      if (segmentsLines[i].contains("#EXTINF:")) {
-        double? duration = double.tryParse(segmentsLines[i]
-            .replaceFirst("#EXTINF:", '')
-            .replaceFirst(',', ''));
-        String? videoLink;
-        if (i < segmentsLines.length - 1) {
-          videoLink = segmentsLines[i + 1];
-          i += 1;
-          if (duration != null) {
-            segments.add(
-              HlsSegment(
-                duration: duration,
-                videoLink: checkLinks(videoLink, playlistUrl),
-              ),
-            );
-          }
-        }
+    for (var item in playlistData.playlistItems) {
+      if (item.hlsKey == HlsKeyConstants.extInf) {
+        segments.add(HlsSegment(videoLink: item.url!));
       }
     }
-    
+
     return SegmentPlaylistParsedModel(segments: segments);
   }
 }

@@ -48,16 +48,15 @@ class HlsRepository {
 
   Future<SegmentPlaylistParsedModel> fetchDataFromResolutionPlaylist(
       HlsResolution resolution) async {
-    // try {
-    //   final response = await dio.get(resolution.playlistUrl);
-    //   return SegmentPlaylistParsedModel.parseFrom(
-    //     response.data,
-    //     '',
-    //   );
-    // } catch (e) {
-    //   rethrow;
-    // }
-    throw Exception();
+    try {
+      final response = await dio.get(resolution.videoPlaylistUrl);
+      final parser = HlsParser(
+          playlist: response.data, playlistUrl: resolution.videoPlaylistUrl);
+      final parsed = parser.parsedData;
+      return SegmentPlaylistParsedModel.fromParsedPlaylist(parsed);
+    } catch (e) {
+      rethrow;
+    }
   }
 
   Future<void> downloadSegment(

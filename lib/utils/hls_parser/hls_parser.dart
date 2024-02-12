@@ -90,7 +90,8 @@ class HlsPlaylistItem {
         valuePairs.add(temp);
       }
 
-      final temp = '$hlsKey:${valuePairs.join(', ')}';
+      final temp =
+          '$hlsKey:${valuePairs.join(', ')}${hlsKey == HlsKeyConstants.extInf ? ',' : ''}';
       if (url == null) {
         return temp;
       } else {
@@ -127,16 +128,20 @@ class HlsParser {
   HlsPlaylistData get parsedData {
     final playlistLines = playlist.split('\n');
     final playlistItems = <HlsPlaylistItem>[];
-
     for (var i = 0; i < playlistLines.length; i++) {
-      final line = playlistLines[i];
+      var line = playlistLines[i];
+
+      if (line.endsWith(',')) {
+        line = line.substring(0, line.length - 2);
+      }
+
       final valueParameters = <HlsParam?, HlsParamValue>{};
       String key;
       if (line.isEmpty) {
         continue;
       }
       if (line.startsWith("#")) {
-        final temp = line.split(':');
+        final temp = line.splitWithExclude(pattern: ':', excludePattern: '"');
         key = temp.first;
 
         if (temp.length > 1) {

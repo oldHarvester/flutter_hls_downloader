@@ -15,3 +15,7 @@ class HlsParamValueConstants {
   static const yes = HlsParamValue(value: "YES");
   static const audio = HlsParamValue(value: "AUDIO");
 }
+
+class HlsKeyConstants {
+  static const extInf = HlsKey(key: "#EXTINF");
+}
