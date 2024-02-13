@@ -8,11 +8,25 @@ class HlsSegment extends Equatable {
   });
 
   final String link;
-  String get saveDir {
+  
+  String get path {
     final splittedLink = link.split('/')
       ..removeAt(0)
       ..removeAt(1);
     return splittedLink.join('/');
+  }
+
+  String get saveDir {
+    final temp = path.split('/')..removeLast();
+    return temp.join('/');
+  }
+
+  String absolutePath(String appDir) {
+    return appDir + path;
+  }
+
+  String get fileName {
+    return path.split('/').last;
   }
 
   @override

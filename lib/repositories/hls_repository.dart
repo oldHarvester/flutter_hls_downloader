@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:background_downloader/background_downloader.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_hls_parser_test/config/endpoints.dart';
@@ -76,11 +78,10 @@ class HlsRepository {
     void Function(double progress)? onDownloadProgressChanges,
   }) async {
     try {
-      final appDirectory = await getApplicationDocumentsDirectory();
-      final fileFullName = hlsSegment.link.split('/').last;
+      final appDir = await getApplicationDocumentsDirectory();
       await dio.download(
         hlsSegment.link,
-        "${appDirectory.path}/segments/$fileFullName",
+        hlsSegment.absolutePath(appDir.path),
         onReceiveProgress: (count, total) {
           onDownloadProgressChanges?.call(count / total);
         },
@@ -90,38 +91,60 @@ class HlsRepository {
     }
   }
 
-  Future<void> downloadHlsVideo(
+  Future<bool> isFileExist(String path) {
+    return File(path).exists();
+  }
+
+  Future<List<HlsSegment>> checkSegments(
       {required MasterPlaylistModel masterPlaylistData,
       required HlsResolution hlsResolution}) async {
+    final videoSegments = await fetchDataFromResolutionPlaylist(hlsResolution);
+    final audioSegments =
+        await fetchAudioPlaylist(masterPlaylistData.audioPlaylistUrl);
+    final appDir = await getApplicationDocumentsDirectory();
+    final segments = [
+      ...videoSegments.segments,
+      ...audioSegments.segments,
+    ];
+
+    final notDownloadedYet = <HlsSegment>[];
+
+    for (var segment in segments) {
+      final path = segment.absolutePath(appDir.path);
+      final isExist = await isFileExist(path);
+      if (!isExist) {
+        notDownloadedYet.add(segment);
+      }
+    }
+
+    return notDownloadedYet;
+  }
+
+  Future<void> downloadHlsVideo(
+      {required List<HlsSegment> segments,
+      void Function(double progress)? onProgressChanges}) async {
     final tasks = <DownloadTask>[];
     try {
-      final videoSegments =
-          await fetchDataFromResolutionPlaylist(hlsResolution);
-      final audioSegments =
-          await fetchAudioPlaylist(masterPlaylistData.audioPlaylistUrl);
-      tasks.addAll([
-        ...videoSegments.segments.map(
-          (e) => DownloadTask(
-            url: e.link,
-            taskId: e.link,
-            directory: e.saveDir,
-          ),
-        ),
-        ...audioSegments.segments.map(
-          (e) => DownloadTask(
-            url: e.link,
-            taskId: e.link,
-            directory: e.saveDir,
-          ),
-        ),
-      ]);
+      final queryParams = {"t": "token_placeholder"};
+
+      tasks.addAll(
+        segments
+            .map(
+              (e) => DownloadTask(
+                url: e.link,
+                taskId: e.link,
+                directory: e.saveDir,
+                filename: e.fileName,
+                urlQueryParameters: queryParams,
+              ),
+            )
+            .toList(),
+      );
 
       await FileDownloader().downloadBatch(
         tasks,
-        batchProgressCallback: (succeeded, failed) {},
-        taskProgressCallback: (update) {
-          print(
-              "expected size: ${update.expectedFileSize}, fileName: ${update.task.filename}");
+        batchProgressCallback: (succeeded, failed) {
+          onProgressChanges?.call(succeeded / segments.length);
         },
       );
     } catch (e) {

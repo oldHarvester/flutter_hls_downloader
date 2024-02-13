@@ -21,6 +21,14 @@ class DirectoryPage extends StatefulWidget {
 class _DirectoryPageState extends State<DirectoryPage> {
   bool isSelectMode = false;
   Set<int> selectedIndexes = {};
+  bool selectAll = false;
+  List<FileSystemEntity> directoryFiles = [];
+
+  @override
+  void initState() {
+    directoryFiles = widget.directory.listSync();
+    super.initState();
+  }
 
   void onLongPress(int index) {
     if (!isSelectMode) {
@@ -29,6 +37,20 @@ class _DirectoryPageState extends State<DirectoryPage> {
         selectedIndexes.add(index);
       });
     }
+  }
+
+  void onSelectAll(bool select) {
+    if (select) {
+      selectAll = true;
+      selectedIndexes = {};
+      for (var i = 0; i < directoryFiles.length; i++) {
+        selectedIndexes.add(i);
+      }
+    } else {
+      selectAll = false;
+      selectedIndexes = {};
+    }
+    setState(() {});
   }
 
   void onPressedInSelectMode(int index) {
@@ -41,35 +63,53 @@ class _DirectoryPageState extends State<DirectoryPage> {
     });
   }
 
+  Future<void> onRemove() async {
+    final sortedIndexes = selectedIndexes.toList()..sort();
+    for (var i = sortedIndexes.length - 1; i >= 0; i--) {
+      await directoryFiles[i].delete(recursive: true);
+      directoryFiles.removeAt(i);
+    }
+    setState(() {
+      isSelectMode = false;
+      selectAll = false;
+      selectedIndexes = {};
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    final directoryFiles = widget.directory.listSync();
-
-    Future<void> onRemove() async {
-      for (var index in selectedIndexes) {
-        await directoryFiles[index].delete(recursive: true);
-      }
-      setState(() {
-        isSelectMode = false;
-        selectedIndexes.clear();
-      });
-    }
-
     return Scaffold(
       appBar: AppBar(
-        leading: isSelectMode
-            ? Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Center(
-                  child: Text(
-                    selectedIndexes.length.toString(),
-                    style: const TextStyle(
-                      fontSize: 20,
+        automaticallyImplyLeading: isSelectMode ? false : true,
+        flexibleSpace: FlexibleSpaceBar(
+          background: isSelectMode
+              ? SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Row(
+                      children: [
+                        Checkbox(
+                          value: selectAll,
+                          onChanged: (value) {
+                            if (value != null) {
+                              onSelectAll(value);
+                            }
+                          },
+                        ),
+                        Center(
+                          child: Text(
+                            selectedIndexes.length.toString(),
+                            style: const TextStyle(
+                              fontSize: 20,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ),
-              )
-            : null,
+                )
+              : null,
+        ),
         centerTitle: isSelectMode ? true : false,
         title: Text(
           getCurrentPath(widget.directory, widget.directory.path),
