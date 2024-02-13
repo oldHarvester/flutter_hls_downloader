@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_hls_parser_test/models/master_playlist_model/master_playlist_model.dart';
-import 'package:flutter_hls_parser_test/presentation/pages/download_list_page/download_list_page.dart';
+import 'package:flutter_hls_parser_test/presentation/pages/app_directory_page/widgets/directory_page.dart';
 import 'package:flutter_hls_parser_test/repositories/hls_repository.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:path_provider/path_provider.dart';
 
 class HomePage extends StatefulHookConsumerWidget {
   const HomePage({super.key});
@@ -19,6 +20,23 @@ class _HomePageState extends ConsumerState<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        actions: [
+          IconButton(
+            onPressed: () async {
+              final appDir = await getApplicationDocumentsDirectory();
+              if (context.mounted) {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => DirectoryPage(directory: appDir),
+                  ),
+                );
+              }
+            },
+            icon: const Icon(Icons.folder),
+          )
+        ],
+      ),
       body: SizedBox(
         width: double.maxFinite,
         child: Column(
@@ -51,22 +69,30 @@ class _HomePageState extends ConsumerState<HomePage> {
                   children: (playlistData?.resolutions ?? {})
                       .map(
                         (resolutionData) => TextButton(
-                          onPressed: () async {
-                            final data = await ref
-                                .read(hlsRepositoryProvider)
-                                .fetchDataFromResolutionPlaylist(
-                                    resolutionData);
+                          // onPressed: () async {
+                          //   final data = await ref
+                          //       .read(hlsRepositoryProvider)
+                          //       .fetchDataFromResolutionPlaylist(
+                          //           resolutionData);
 
-                            if (context.mounted) {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (context) {
-                                    return DownloadListPage(
-                                      segmentsData: data,
-                                    );
-                                  },
-                                ),
-                              );
+                          //   if (context.mounted) {
+                          //     Navigator.of(context).push(
+                          //       MaterialPageRoute(
+                          //         builder: (context) {
+                          //           return DownloadListPage(
+                          //             segmentsData: data,
+                          //           );
+                          //         },
+                          //       ),
+                          //     );
+                          //   }
+                          // },
+                          onPressed: () {
+                            if (playlistData != null) {
+                              ref.read(hlsRepositoryProvider).downloadHlsVideo(
+                                    masterPlaylistData: playlistData!,
+                                    hlsResolution: resolutionData,
+                                  );
                             }
                           },
                           child: Text(

@@ -1,3 +1,4 @@
+import 'package:background_downloader/background_downloader.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_hls_parser_test/config/endpoints.dart';
 import 'package:flutter_hls_parser_test/models/hls_entry_model/hls_entry_model.dart';
@@ -59,15 +60,26 @@ class HlsRepository {
     }
   }
 
+  Future<SegmentPlaylistParsedModel> fetchAudioPlaylist(String url) async {
+    try {
+      final response = await dio.get(url);
+      final parser = HlsParser(playlist: response.data, playlistUrl: url);
+      final parsed = parser.parsedData;
+      return SegmentPlaylistParsedModel.fromParsedPlaylist(parsed);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
   Future<void> downloadSegment(
     HlsSegment hlsSegment, {
     void Function(double progress)? onDownloadProgressChanges,
   }) async {
     try {
       final appDirectory = await getApplicationDocumentsDirectory();
-      final fileFullName = hlsSegment.videoLink.split('/').last;
+      final fileFullName = hlsSegment.link.split('/').last;
       await dio.download(
-        hlsSegment.videoLink,
+        hlsSegment.link,
         "${appDirectory.path}/segments/$fileFullName",
         onReceiveProgress: (count, total) {
           onDownloadProgressChanges?.call(count / total);
@@ -80,5 +92,40 @@ class HlsRepository {
 
   Future<void> downloadHlsVideo(
       {required MasterPlaylistModel masterPlaylistData,
-      required HlsResolution hlsResolution}) async {}
+      required HlsResolution hlsResolution}) async {
+    final tasks = <DownloadTask>[];
+    try {
+      final videoSegments =
+          await fetchDataFromResolutionPlaylist(hlsResolution);
+      final audioSegments =
+          await fetchAudioPlaylist(masterPlaylistData.audioPlaylistUrl);
+      tasks.addAll([
+        ...videoSegments.segments.map(
+          (e) => DownloadTask(
+            url: e.link,
+            taskId: e.link,
+            directory: e.saveDir,
+          ),
+        ),
+        ...audioSegments.segments.map(
+          (e) => DownloadTask(
+            url: e.link,
+            taskId: e.link,
+            directory: e.saveDir,
+          ),
+        ),
+      ]);
+
+      await FileDownloader().downloadBatch(
+        tasks,
+        batchProgressCallback: (succeeded, failed) {},
+        taskProgressCallback: (update) {
+          print(
+              "expected size: ${update.expectedFileSize}, fileName: ${update.task.filename}");
+        },
+      );
+    } catch (e) {
+      rethrow;
+    }
+  }
 }

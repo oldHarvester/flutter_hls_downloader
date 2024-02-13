@@ -24,7 +24,7 @@ class SegmentTile extends HookConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(segment.videoLink),
+          Text(segment.link),
           const SizedBox(
             height: 8,
           ),

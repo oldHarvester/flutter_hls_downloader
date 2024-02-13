@@ -4,13 +4,19 @@ import 'package:flutter_hls_parser_test/utils/hls_parser/hls_parser.dart';
 
 class HlsSegment extends Equatable {
   const HlsSegment({
-    required this.videoLink,
+    required this.link,
   });
 
-  final String videoLink;
+  final String link;
+  String get saveDir {
+    final splittedLink = link.split('/')
+      ..removeAt(0)
+      ..removeAt(1);
+    return splittedLink.join('/');
+  }
 
   @override
-  List<Object?> get props => [videoLink];
+  List<Object?> get props => [link];
 }
 
 class SegmentPlaylistParsedModel {
@@ -24,7 +30,7 @@ class SegmentPlaylistParsedModel {
 
     for (var item in playlistData.playlistItems) {
       if (item.hlsKey == HlsKeyConstants.extInf) {
-        segments.add(HlsSegment(videoLink: item.url!));
+        segments.add(HlsSegment(link: item.url!));
       }
     }
 
