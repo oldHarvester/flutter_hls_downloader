@@ -1,10 +1,12 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
 import 'package:equatable/equatable.dart';
+import 'package:flutter_hls_parser_test/models/segment_playlist_model/segment_playlist_parsed_model.dart';
 
 import 'package:flutter_hls_parser_test/utils/extensions/list_extension.dart';
 import 'package:flutter_hls_parser_test/utils/extensions/string_extension.dart';
 import 'package:flutter_hls_parser_test/utils/functions.dart';
 import 'package:flutter_hls_parser_test/utils/hls_parser/hls_constants.dart';
+import 'package:path_provider/path_provider.dart';
 
 class HlsKey extends Equatable {
   const HlsKey({required this.key});
@@ -72,6 +74,18 @@ class HlsPlaylistItem {
   final Map<HlsParam?, HlsParamValue> hlsValueParameters;
   final String? url;
 
+  HlsPlaylistItem copyWith({
+    HlsKey? hlsKey,
+    Map<HlsParam?, HlsParamValue>? hlsValueParameters,
+    String? url,
+  }) {
+    return HlsPlaylistItem(
+      hlsKey: hlsKey ?? this.hlsKey,
+      hlsValueParameters: hlsValueParameters ?? this.hlsValueParameters,
+      url: url ?? this.url,
+    );
+  }
+
   @override
   String toString() {
     if (hlsValueParameters.isEmpty) {
@@ -104,13 +118,46 @@ class HlsPlaylistItem {
 class HlsPlaylistData {
   const HlsPlaylistData({
     required this.playlistItems,
+    required this.playlistUrl,
   });
 
   final List<HlsPlaylistItem> playlistItems;
+  final String playlistUrl;
 
   @override
   String toString() {
     return playlistItems.map((e) => e.toString()).join('\n');
+  }
+
+  Future<String> toLocalPlaylist() async {
+    final appDir = await getApplicationDocumentsDirectory();
+    final strings = <String>[];
+
+    for (var item in playlistItems) {
+      if (item.hlsKey != HlsKeyConstants.extInf) {
+        for (var valuePair in item.hlsValueParameters.entries) {
+          if (valuePair.key == HlsParamConstants.uri) {
+            item = item.copyWith(
+              hlsValueParameters: {
+                valuePair.key: HlsParamValue(
+                  value: '"${hlsUrlToLocal(
+                    appDir,
+                    valuePair.value.value,
+                  )}"',
+                ),
+              },
+            );
+          }
+        }
+      }
+      if (item.url != null) {
+        item = item.copyWith(
+          url: hlsUrlToLocal(appDir, item.url!),
+        );
+      }
+      strings.add(item.toString());
+    }
+    return strings.join('\n');
   }
 }
 
@@ -118,12 +165,15 @@ class HlsParser {
   const HlsParser({
     required this.playlist,
     required this.playlistUrl,
+    this.key,
   });
 
   // Playlist data that came in response
   final String playlist;
   // URL form where the playlist was requested
   final String playlistUrl;
+
+  final HlsSegmentsPlaylistKey? key;
 
   HlsPlaylistData get parsedData {
     final playlistLines = playlist.split('\n');
@@ -200,6 +250,32 @@ class HlsParser {
       }
     }
 
-    return HlsPlaylistData(playlistItems: playlistItems);
+    if (key != null) {
+      for (var i = 0; i < playlistItems.length; i++) {
+        final item = playlistItems[i];
+        if (item.hlsKey == HlsKeyConstants.extInf) {
+          if (i != 0) {
+            playlistItems.insert(
+              i,
+              HlsPlaylistItem(
+                hlsKey: HlsKeyConstants.extXKey,
+                hlsValueParameters: {
+                  HlsParamConstants.method: HlsParamValueConstants.aes128,
+                  HlsParamConstants.uri:
+                      HlsParamValue(value: '"${key!.encKeyUrl}"'),
+                  HlsParamConstants.iv: HlsParamValue(value: key!.salt),
+                },
+              ),
+            );
+            break;
+          }
+        }
+      }
+    }
+
+    return HlsPlaylistData(
+      playlistItems: playlistItems,
+      playlistUrl: playlistUrl,
+    );
   }
 }

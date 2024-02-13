@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hls_parser_test/models/master_playlist_model/master_playlist_model.dart';
 import 'package:flutter_hls_parser_test/presentation/pages/app_directory_page/widgets/directory_page.dart';
 import 'package:flutter_hls_parser_test/repositories/hls_repository.dart';
+import 'package:flutter_hls_parser_test/utils/functions.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -51,13 +52,9 @@ class _HomePageState extends ConsumerState<HomePage> {
                 ElevatedButton(
                   child: const Text("Parse"),
                   onPressed: () async {
-                    final hlsEntry =
-                        await ref.read(hlsRepositoryProvider).fetchHlsEntry();
-
-                    url = hlsEntry.master;
                     playlistData = await ref
                         .read(hlsRepositoryProvider)
-                        .fetchDataFromMasterPlaylist(url!);
+                        .fetchDataFromMasterPlaylist();
                     setState(() {});
                   },
                 ),
@@ -78,7 +75,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                                 final data = await ref
                                     .read(hlsRepositoryProvider)
                                     .fetchDataFromResolutionPlaylist(
-                                        resolutionData);
+                                        playlistData!, resolutionData);
 
                                 if (context.mounted) {
                                   Navigator.of(context).push(
@@ -104,8 +101,18 @@ class _HomePageState extends ConsumerState<HomePage> {
                                     ref
                                         .read(hlsRepositoryProvider)
                                         .downloadHlsVideo(
+                                          hlsResolution: resolutionData,
+                                          masterPlaylistData: playlistData!,
                                           segments: segmentsToDownload,
+                                          key: playlistData!.segmentPlaylistKey,
                                         );
+                                  } else {
+                                    if (context.mounted) {
+                                      showSnackbar(
+                                        context,
+                                        "Already Downloaded",
+                                      );
+                                    }
                                   }
                                 }
                               },

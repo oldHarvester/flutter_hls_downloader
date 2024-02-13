@@ -51,6 +51,7 @@ class _FileDetailsPageState extends State<FileDetailsPage> {
             )
           : SingleChildScrollView(
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: List.generate(
                   fileContent.length,
                   (index) {

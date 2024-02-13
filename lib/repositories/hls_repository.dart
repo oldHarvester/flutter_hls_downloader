@@ -7,6 +7,7 @@ import 'package:flutter_hls_parser_test/models/hls_entry_model/hls_entry_model.d
 import 'package:flutter_hls_parser_test/models/master_playlist_model/master_playlist_model.dart';
 import 'package:flutter_hls_parser_test/models/segment_playlist_model/segment_playlist_parsed_model.dart';
 import 'package:flutter_hls_parser_test/providers/client_provider.dart';
+import 'package:flutter_hls_parser_test/utils/functions.dart';
 import 'package:flutter_hls_parser_test/utils/hls_parser/hls_parser.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:riverpod/riverpod.dart';
@@ -33,9 +34,25 @@ class HlsRepository {
     }
   }
 
-  Future<MasterPlaylistModel> fetchDataFromMasterPlaylist(
-      String masterPlaylistUrl) async {
+  Future<MasterPlaylistModel> fetchDataFromMasterPlaylist() async {
     try {
+      HlsSegmentsPlaylistKey? segmentPlaylistKey;
+      final hlsEntry = await fetchHlsEntry();
+      final masterPlaylistUrl = hlsEntry.master;
+      if (masterPlaylistUrl == null) {
+        throw UnimplementedError(
+          "Make sure you have provided master playlist url!",
+        );
+      }
+      if (hlsEntry.enc_key != null && hlsEntry.salt != null) {
+        final saltResponse = await dio.get(hlsEntry.salt!);
+        if (saltResponse.data is String) {
+          segmentPlaylistKey = HlsSegmentsPlaylistKey(
+            encKeyUrl: hlsEntry.enc_key!,
+            salt: saltResponse.data,
+          );
+        }
+      }
       final response = await dio.get(masterPlaylistUrl);
       final parser = HlsParser(
         playlist: response.data,
@@ -43,6 +60,7 @@ class HlsRepository {
       );
       return MasterPlaylistModel.fromParsedPlaylist(
         parser.parsedData,
+        segmentPlaylistKey,
       );
     } catch (e) {
       rethrow;
@@ -50,24 +68,38 @@ class HlsRepository {
   }
 
   Future<SegmentPlaylistParsedModel> fetchDataFromResolutionPlaylist(
-      HlsResolution resolution) async {
+      MasterPlaylistModel masterPlaylist, HlsResolution resolution) async {
     try {
       final response = await dio.get(resolution.videoPlaylistUrl);
       final parser = HlsParser(
-          playlist: response.data, playlistUrl: resolution.videoPlaylistUrl);
+        playlist: response.data,
+        playlistUrl: resolution.videoPlaylistUrl,
+        key: masterPlaylist.segmentPlaylistKey,
+      );
       final parsed = parser.parsedData;
-      return SegmentPlaylistParsedModel.fromParsedPlaylist(parsed);
+      return SegmentPlaylistParsedModel.fromParsedPlaylist(
+        parsed,
+        masterPlaylist.segmentPlaylistKey,
+      );
     } catch (e) {
       rethrow;
     }
   }
 
-  Future<SegmentPlaylistParsedModel> fetchAudioPlaylist(String url) async {
+  Future<SegmentPlaylistParsedModel> fetchAudioPlaylist(
+      MasterPlaylistModel masterPlaylistData) async {
     try {
-      final response = await dio.get(url);
-      final parser = HlsParser(playlist: response.data, playlistUrl: url);
+      final response = await dio.get(masterPlaylistData.audioPlaylistUrl);
+      final parser = HlsParser(
+        playlist: response.data,
+        playlistUrl: masterPlaylistData.audioPlaylistUrl,
+        key: masterPlaylistData.segmentPlaylistKey,
+      );
       final parsed = parser.parsedData;
-      return SegmentPlaylistParsedModel.fromParsedPlaylist(parsed);
+      return SegmentPlaylistParsedModel.fromParsedPlaylist(
+        parsed,
+        masterPlaylistData.segmentPlaylistKey,
+      );
     } catch (e) {
       rethrow;
     }
@@ -98,9 +130,11 @@ class HlsRepository {
   Future<List<HlsSegment>> checkSegments(
       {required MasterPlaylistModel masterPlaylistData,
       required HlsResolution hlsResolution}) async {
-    final videoSegments = await fetchDataFromResolutionPlaylist(hlsResolution);
-    final audioSegments =
-        await fetchAudioPlaylist(masterPlaylistData.audioPlaylistUrl);
+    final videoSegments = await fetchDataFromResolutionPlaylist(
+      masterPlaylistData,
+      hlsResolution,
+    );
+    final audioSegments = await fetchAudioPlaylist(masterPlaylistData);
     final appDir = await getApplicationDocumentsDirectory();
     final segments = [
       ...videoSegments.segments,
@@ -122,11 +156,30 @@ class HlsRepository {
 
   Future<void> downloadHlsVideo(
       {required List<HlsSegment> segments,
+      HlsSegmentsPlaylistKey? key,
+      required MasterPlaylistModel masterPlaylistData,
+      required HlsResolution hlsResolution,
       void Function(double progress)? onProgressChanges}) async {
-    final tasks = <DownloadTask>[];
     try {
-      final queryParams = {"t": "token_placeholder"};
+      final videoSegments = await fetchDataFromResolutionPlaylist(
+        masterPlaylistData,
+        hlsResolution,
+      );
+      final audioSegments = await fetchAudioPlaylist(masterPlaylistData);
 
+      final appDir = await getApplicationDocumentsDirectory();
+
+      final queryParams = {"t": "token_placeholder"};
+      final tasks = <DownloadTask>[
+        if (key != null)
+          DownloadTask(
+            url: key.encKeyUrl,
+            taskId: key.encKeyUrl,
+            directory: key.saveDir,
+            filename: key.fileName,
+            urlQueryParameters: queryParams,
+          ),
+      ];
       tasks.addAll(
         segments
             .map(
@@ -146,6 +199,15 @@ class HlsRepository {
         batchProgressCallback: (succeeded, failed) {
           onProgressChanges?.call(succeeded / segments.length);
         },
+      );
+
+      await File(hlsUrlToLocal(appDir, videoSegments.playlistData.playlistUrl))
+          .writeAsString(
+        await videoSegments.playlistData.toLocalPlaylist(),
+      );
+      await File(hlsUrlToLocal(appDir, audioSegments.playlistData.playlistUrl))
+          .writeAsString(
+        await audioSegments.playlistData.toLocalPlaylist(),
       );
     } catch (e) {
       rethrow;

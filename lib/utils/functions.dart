@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/material.dart';
 
 String checkLinks(String currentLink, String oldLink) {
   if (currentLink.startsWith("http")) {
@@ -39,4 +40,20 @@ String getCurrentPath(Directory directory, String path) {
   }
 
   return includedDirectories.join('/');
+}
+
+String hlsUrlToLocal(Directory appDir, String url) {
+  final urlSegments = url.split('/')
+    ..removeAt(0)
+    ..removeAt(1);
+  return appDir.path + urlSegments.join('/');
+}
+
+void showSnackbar(BuildContext context, String message) {
+  ScaffoldMessenger.of(context).clearSnackBars();
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(message),
+    ),
+  );
 }

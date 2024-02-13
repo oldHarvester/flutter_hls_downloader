@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_hls_parser_test/models/segment_playlist_model/segment_playlist_parsed_model.dart';
 import 'package:flutter_hls_parser_test/utils/hls_parser/hls_constants.dart';
 import 'package:flutter_hls_parser_test/utils/hls_parser/hls_parser.dart';
 
@@ -32,15 +33,18 @@ class MasterPlaylistModel extends Equatable {
     required this.masterPlaylistData,
     required this.audioPlaylistUrl,
     required this.playlistLocale,
+    this.segmentPlaylistKey,
   });
 
   final String audioPlaylistUrl;
   final Set<HlsResolution> resolutions;
   final HlsPlaylistData masterPlaylistData;
   final Locale playlistLocale;
+  final HlsSegmentsPlaylistKey? segmentPlaylistKey;
 
   factory MasterPlaylistModel.fromParsedPlaylist(
-      HlsPlaylistData parsedMasterPlaylist) {
+      HlsPlaylistData parsedMasterPlaylist,
+      [HlsSegmentsPlaylistKey? segmentPlaylistKey]) {
     final resolutions = <HlsResolution>{};
     String? audioUrl;
     Locale? locale;
@@ -68,8 +72,7 @@ class MasterPlaylistModel extends Equatable {
       final language = item.hlsValueParameters[HlsParamConstants.language];
 
       if (locale == null && language != null) {
-        locale =
-            language.value == "uz" ? const Locale("uz") : const Locale("ru");
+        locale = Locale(language.value.replaceAll('"', ''));
       }
     }
 
@@ -84,9 +87,16 @@ class MasterPlaylistModel extends Equatable {
       masterPlaylistData: parsedMasterPlaylist,
       audioPlaylistUrl: audioUrl,
       playlistLocale: locale,
+      segmentPlaylistKey: segmentPlaylistKey,
     );
   }
 
   @override
-  List<Object?> get props => [resolutions];
+  List<Object?> get props => [
+        audioPlaylistUrl,
+        resolutions,
+        masterPlaylistData,
+        audioPlaylistUrl,
+        segmentPlaylistKey
+      ];
 }

@@ -9,13 +9,17 @@ class HlsParamConstants {
   static const uri = HlsParam(parameter: "URI");
   static const codecs = HlsParam(parameter: "CODECS");
   static const language = HlsParam(parameter: "LANGUAGE");
+  static const method = HlsParam(parameter: "METHOD");
+  static const iv = HlsParam(parameter: "IV");
 }
 
 class HlsParamValueConstants {
   static const yes = HlsParamValue(value: "YES");
   static const audio = HlsParamValue(value: "AUDIO");
+  static const aes128 = HlsParamValue(value: "AES-128");
 }
 
 class HlsKeyConstants {
   static const extInf = HlsKey(key: "#EXTINF");
+  static const extXKey = HlsKey(key: "#EXT-X-KEY");
 }
