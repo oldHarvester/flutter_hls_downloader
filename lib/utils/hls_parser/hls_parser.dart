@@ -139,10 +139,12 @@ class HlsPlaylistData {
           if (valuePair.key == HlsParamConstants.uri) {
             item = item.copyWith(
               hlsValueParameters: {
+                ...item.hlsValueParameters,
                 valuePair.key: HlsParamValue(
                   value: '"${hlsUrlToLocal(
                     appDir,
                     valuePair.value.value,
+                    true,
                   )}"',
                 ),
               },
@@ -152,7 +154,7 @@ class HlsPlaylistData {
       }
       if (item.url != null) {
         item = item.copyWith(
-          url: hlsUrlToLocal(appDir, item.url!),
+          url: hlsUrlToLocal(appDir, item.url!, true),
         );
       }
       strings.add(item.toString());
@@ -212,11 +214,7 @@ class HlsParser {
               if (key == HlsParamConstants.uri) {
                 value = value.copyWith(
                   value:
-                      '"${checkLinks(temp.last.replaceAll('"', ''), playlistUrl)}"',
-                );
-              } else if (key == HlsParamConstants.codecs) {
-                value = value.copyWith(
-                  value: checkLinks(temp.last, playlistUrl),
+                      '"${checkLinks(temp.last.replaceAll('"', ''), playlistUrl)}',
                 );
               }
 
@@ -263,7 +261,8 @@ class HlsParser {
                   HlsParamConstants.method: HlsParamValueConstants.aes128,
                   HlsParamConstants.uri:
                       HlsParamValue(value: '"${key!.encKeyUrl}"'),
-                  HlsParamConstants.iv: HlsParamValue(value: key!.salt),
+                  HlsParamConstants.iv:
+                      HlsParamValue(value: asciiToHex(key!.salt)),
                 },
               ),
             );

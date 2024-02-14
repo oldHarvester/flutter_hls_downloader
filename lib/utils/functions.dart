@@ -42,11 +42,15 @@ String getCurrentPath(Directory directory, String path) {
   return includedDirectories.join('/');
 }
 
-String hlsUrlToLocal(Directory appDir, String url) {
+String hlsUrlToLocal(Directory appDir, String url, [bool addFile = false]) {
   final urlSegments = url.split('/')
     ..removeAt(0)
     ..removeAt(1);
-  return appDir.path + urlSegments.join('/');
+  return "${addFile ? "file://" : ""}${appDir.path}${urlSegments.join('/')}";
+}
+
+String asciiToHex(String input) {
+  return "0x${input.codeUnits.map((unit) => unit.toRadixString(16)).join()}";
 }
 
 void showSnackbar(BuildContext context, String message) {

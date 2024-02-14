@@ -201,6 +201,12 @@ class HlsRepository {
         },
       );
 
+      await File(hlsUrlToLocal(
+              appDir, masterPlaylistData.masterPlaylistData.playlistUrl))
+          .writeAsString(
+        await masterPlaylistData.masterPlaylistData.toLocalPlaylist(),
+      );
+
       await File(hlsUrlToLocal(appDir, videoSegments.playlistData.playlistUrl))
           .writeAsString(
         await videoSegments.playlistData.toLocalPlaylist(),

@@ -44,10 +44,11 @@ packages:
   better_player:
     dependency: "direct main"
     description:
-      name: better_player
-      sha256: f2e5d57ea49fb7c4d93838d23846ca5ddf78af6f946e103aeacf2afdd01909b3
-      url: "https://pub.dev"
-    source: hosted
+      path: "."
+      ref: Issue1057
+      resolved-ref: e45f447b6d3ae6a3404ddfd9663f8aeae864ddec
+      url: "https://github.com/matthewrice345/betterplayer.git"
+    source: git
     version: "0.0.83"
   boolean_selector:
     dependency: transitive
