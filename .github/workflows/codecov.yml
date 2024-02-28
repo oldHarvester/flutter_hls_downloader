@@ -1,5 +1,13 @@
-- name: Upload coverage reports to Codecov
-  uses: codecov/codecov-action@v4.0.1
-  with:
-    token: ${{ secrets.CODECOV_TOKEN }}
-    slug: oldHarvester/flutter_hls_downloader
+name: Workflow for Codecov example-python
+on: [push, pull_request]
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4-beta
+        with:
+          flags: smart-tests
+          verbose: true
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
